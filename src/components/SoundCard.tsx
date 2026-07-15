@@ -2,9 +2,21 @@ import { useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { Play, Pause, Sliders } from "lucide-react";
 import { Waveform } from "./Waveform";
-import type { MockSound } from "../lib/mock-data";
 
-export function SoundCard({ sound }: { sound: MockSound }) {
+type SoundLike = {
+  id: string;
+  title: string;
+  prompt: string;
+  mood: string;
+  category: string;
+  tags: string[];
+  duration: string;
+  audioUrl: string;
+  waveform: number[];
+  favorite?: boolean;
+};
+
+export function SoundCard({ sound }: { sound: SoundLike }) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [playing, setPlaying] = useState(false);
   const [progress, setProgress] = useState(0);

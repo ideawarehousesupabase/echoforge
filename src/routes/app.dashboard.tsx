@@ -1,8 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Wand2, Sparkles, TrendingUp, Clock, ArrowRight } from "lucide-react";
+import { useEffect } from "react";
+import { Wand2, Sparkles, TrendingUp, Clock, ArrowRight, Loader2 } from "lucide-react";
 import { useAuth } from "../lib/auth";
-import { MOCK_PROJECTS, MOCK_SOUNDS, RECENT_ACTIVITY } from "../lib/mock-data";
+import { useUserProjects, useUserSounds } from "../hooks/useProjects";
+import { seedMockDataIfNeeded } from "../lib/firestore-data";
 import { SoundCard } from "../components/SoundCard";
+import type { Project } from "../lib/firestore-data";
 
 export const Route = createFileRoute("/app/dashboard")({
   head: () => ({ meta: [{ title: "Dashboard — EchoForge" }] }),
@@ -12,6 +15,37 @@ export const Route = createFileRoute("/app/dashboard")({
 function Dashboard() {
   const { user } = useAuth();
   const firstName = user?.name.split(" ")[0] ?? "there";
+  const { projects, loading: projectsLoading, refetch: refetchProjects } = useUserProjects(user?.id);
+  const { sounds, loading: soundsLoading, refetch: refetchSounds } = useUserSounds(user?.id);
+
+  // Seed demo data on first login
+  useEffect(() => {
+    if (!user?.id) return;
+    let cancelled = false;
+    seedMockDataIfNeeded(user.id).then(() => {
+      if (cancelled) return;
+      refetchProjects();
+      refetchSounds();
+    }).catch(console.error);
+    return () => { cancelled = true; };
+  }, [user?.id]);
+
+  const loading = projectsLoading || soundsLoading;
+
+  const formatRelative = (ts: Project["updatedAt"]) => {
+    if (!ts) return "—";
+    const now = Date.now();
+    const then = ts.toDate().getTime();
+    const diffMs = now - then;
+    const minutes = Math.floor(diffMs / 60000);
+    if (minutes < 1) return "just now";
+    if (minutes < 60) return `${minutes}m ago`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours}h ago`;
+    const days = Math.floor(hours / 24);
+    if (days === 1) return "yesterday";
+    return `${days} days ago`;
+  };
 
   return (
     <div className="mx-auto max-w-7xl space-y-10">
@@ -40,9 +74,9 @@ function Dashboard() {
       {/* Stats */}
       <div className="grid gap-4 md:grid-cols-3">
         {[
-          { icon: Sparkles, label: "Sounds generated", value: "142" },
-          { icon: TrendingUp, label: "Credits used", value: "58 / 500" },
-          { icon: Clock, label: "Hours saved", value: "24h" },
+          { icon: Sparkles, label: "Sounds generated", value: loading ? "…" : String(sounds.length) },
+          { icon: TrendingUp, label: "Active projects", value: loading ? "…" : String(projects.length) },
+          { icon: Clock, label: "Latest activity", value: loading ? "…" : (sounds.length > 0 ? formatRelative(sounds[0]?.createdAt ?? null) : "No activity") },
         ].map(({ icon: Icon, label, value }) => (
           <div key={label} className="glass rounded-2xl p-5">
             <div className="flex items-center justify-between">
@@ -62,18 +96,27 @@ function Dashboard() {
             View all <ArrowRight className="h-3.5 w-3.5" />
           </Link>
         </div>
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          {MOCK_PROJECTS.slice(0, 4).map((p) => (
-            <div key={p.id} className="glass overflow-hidden rounded-2xl transition-transform hover:-translate-y-1">
-              <div className="h-24" style={{ background: p.cover }} />
-              <div className="p-4">
-                <h3 className="truncate font-display font-semibold">{p.name}</h3>
-                <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{p.description}</p>
-                <p className="mt-3 text-[11px] text-muted-foreground">{p.soundCount} sounds · {p.updatedAt}</p>
-              </div>
-            </div>
-          ))}
-        </div>
+        {loading ? (
+          <div className="flex justify-center py-8">
+            <Loader2 className="h-6 w-6 animate-spin text-brand" />
+          </div>
+        ) : (
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            {projects.slice(0, 4).map((p) => (
+              <Link key={p.id} to="/app/projects/$projectId" params={{ projectId: p.id }} className="glass overflow-hidden rounded-2xl transition-transform hover:-translate-y-1">
+                <div className="h-24" style={{ background: p.cover }} />
+                <div className="p-4">
+                  <h3 className="truncate font-display font-semibold">{p.name}</h3>
+                  <p className="mt-1 line-clamp-2 text-xs text-muted-foreground">{p.description}</p>
+                  <p className="mt-3 text-[11px] text-muted-foreground">{p.productionType} · {formatRelative(p.updatedAt)}</p>
+                </div>
+              </Link>
+            ))}
+            {projects.length === 0 && (
+              <p className="col-span-full py-8 text-center text-sm text-muted-foreground">No projects yet.</p>
+            )}
+          </div>
+        )}
       </section>
 
       {/* Recent sounds */}
@@ -84,28 +127,18 @@ function Dashboard() {
             Open library <ArrowRight className="h-3.5 w-3.5" />
           </Link>
         </div>
-        <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-          {MOCK_SOUNDS.slice(0, 3).map((s) => <SoundCard key={s.id} sound={s} />)}
-        </div>
-      </section>
-
-      {/* Activity */}
-      <section>
-        <h2 className="mb-4 font-display text-2xl font-semibold">Recent activity</h2>
-        <div className="glass rounded-2xl divide-y divide-border/60">
-          {RECENT_ACTIVITY.map((a) => (
-            <div key={a.id} className="flex items-center justify-between p-4">
-              <div>
-                <span className="text-sm">
-                  <span className="font-medium text-brand">{a.action}</span>{" "}
-                  <span className="text-muted-foreground">·</span>{" "}
-                  {a.target}
-                </span>
-              </div>
-              <span className="text-xs text-muted-foreground">{a.time}</span>
-            </div>
-          ))}
-        </div>
+        {loading ? (
+          <div className="flex justify-center py-8">
+            <Loader2 className="h-6 w-6 animate-spin text-brand" />
+          </div>
+        ) : (
+          <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+            {sounds.slice(0, 3).map((s) => <SoundCard key={s.id} sound={s} />)}
+            {sounds.length === 0 && (
+              <p className="col-span-full py-8 text-center text-sm text-muted-foreground">No sounds generated yet.</p>
+            )}
+          </div>
+        )}
       </section>
     </div>
   );

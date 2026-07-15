@@ -1,9 +1,13 @@
 import { createFileRoute, Link, useParams } from "@tanstack/react-router";
 import { useRef, useState } from "react";
-import { Play, Pause, Download, ArrowLeft, RotateCcw } from "lucide-react";
+import { Play, Pause, Download, ArrowLeft, RotateCcw, FolderOpen, Loader2 } from "lucide-react";
 import { MOCK_SOUNDS } from "../lib/mock-data";
 import { Waveform } from "../components/Waveform";
 import { toast } from "sonner";
+import { useSound } from "../hooks/useProjects";
+import { useAuth } from "../lib/auth";
+import { useUserProjects } from "../hooks/useProjects";
+import { assignSoundToProject } from "../lib/firestore-data";
 
 export const Route = createFileRoute("/app/editor/$id")({
   head: () => ({ meta: [{ title: "Sound Editor — EchoForge" }] }),
@@ -21,7 +25,29 @@ const CONTROLS = [
 
 function EditorPage() {
   const { id } = useParams({ from: "/app/editor/$id" });
-  const sound = MOCK_SOUNDS.find((s) => s.id === id) ?? MOCK_SOUNDS[0];
+  const { user } = useAuth();
+  const { sound: firestoreSound, loading: soundLoading } = useSound(id);
+  const { projects } = useUserProjects(user?.id);
+
+  // Fallback to mock data for old/demo sound IDs
+  const mockFallback = MOCK_SOUNDS.find((s) => s.id === id) ?? MOCK_SOUNDS[0];
+  const sound = firestoreSound
+    ? {
+        id: firestoreSound.id,
+        title: firestoreSound.title,
+        prompt: firestoreSound.prompt,
+        mood: firestoreSound.mood,
+        category: firestoreSound.category,
+        tags: firestoreSound.tags,
+        duration: firestoreSound.duration,
+        audioUrl: firestoreSound.audioUrl,
+        waveform: firestoreSound.waveform,
+        favorite: firestoreSound.favorite,
+      }
+    : mockFallback;
+
+  const isFirestoreSound = !!firestoreSound;
+  const [assigningProject, setAssigningProject] = useState(firestoreSound?.projectId ?? "");
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [playing, setPlaying] = useState(false);
@@ -61,6 +87,25 @@ function EditorPage() {
     }
   };
 
+  const handleAssignProject = async (projectId: string) => {
+    setAssigningProject(projectId);
+    if (!isFirestoreSound) return;
+    try {
+      await assignSoundToProject(sound.id, projectId || null);
+      toast.success(projectId ? "Sound assigned to project." : "Sound removed from project.");
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to assign project.");
+    }
+  };
+
+  if (soundLoading) {
+    return (
+      <div className="flex min-h-[40vh] items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-brand" />
+      </div>
+    );
+  }
 
   return (
     <div className="mx-auto max-w-6xl space-y-8">
@@ -114,9 +159,26 @@ function EditorPage() {
           </div>
         </div>
 
-        {/* Export bar */}
+        {/* Export + Project assign bar */}
         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border/60 bg-surface/40 px-6 py-4 md:px-10">
-          <span className="text-sm text-muted-foreground">Ready to ship? Export a lossless or compressed file.</span>
+          <div className="flex items-center gap-3">
+            {isFirestoreSound && (
+              <>
+                <FolderOpen className="h-4 w-4 text-muted-foreground" />
+                <select
+                  value={assigningProject}
+                  onChange={(e) => handleAssignProject(e.target.value)}
+                  className="rounded-lg border border-input bg-background/40 px-3 py-1.5 text-xs outline-none focus:border-brand"
+                >
+                  <option value="">No project</option>
+                  {projects.map((p) => (
+                    <option key={p.id} value={p.id}>{p.name}</option>
+                  ))}
+                </select>
+              </>
+            )}
+            <span className="text-sm text-muted-foreground">Export:</span>
+          </div>
           <div className="flex gap-2">
             <button
               onClick={() => exportFile("wav")}

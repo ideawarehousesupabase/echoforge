@@ -1,8 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { Search, Heart } from "lucide-react";
-import { MOCK_SOUNDS, CATEGORIES, MOODS } from "../lib/mock-data";
+import { Search, Heart, Loader2 } from "lucide-react";
+import { CATEGORIES, MOODS } from "../lib/mock-data";
 import { SoundCard } from "../components/SoundCard";
+import { useAuth } from "../lib/auth";
+import { useUserSounds } from "../hooks/useProjects";
 
 export const Route = createFileRoute("/app/library")({
   head: () => ({ meta: [{ title: "Library — EchoForge" }] }),
@@ -10,13 +12,15 @@ export const Route = createFileRoute("/app/library")({
 });
 
 function LibraryPage() {
+  const { user } = useAuth();
+  const { sounds, loading } = useUserSounds(user?.id);
   const [q, setQ] = useState("");
   const [cat, setCat] = useState("All");
   const [mood, setMood] = useState("All");
   const [favsOnly, setFavsOnly] = useState(false);
 
   const filtered = useMemo(() => {
-    return MOCK_SOUNDS.filter((s) => {
+    return sounds.filter((s) => {
       if (favsOnly && !s.favorite) return false;
       if (cat !== "All" && s.category !== cat) return false;
       if (mood !== "All" && s.mood !== mood) return false;
@@ -26,7 +30,7 @@ function LibraryPage() {
       }
       return true;
     });
-  }, [q, cat, mood, favsOnly]);
+  }, [sounds, q, cat, mood, favsOnly]);
 
   return (
     <div className="mx-auto max-w-7xl">
@@ -60,12 +64,18 @@ function LibraryPage() {
         <FilterRow label="Mood" options={MOODS} value={mood} onChange={setMood} />
       </div>
 
-      <div className="mt-8 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-        {filtered.map((s) => <SoundCard key={s.id} sound={s} />)}
-        {filtered.length === 0 && (
-          <p className="col-span-full py-12 text-center text-sm text-muted-foreground">No sounds match your filters.</p>
-        )}
-      </div>
+      {loading ? (
+        <div className="mt-12 flex justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-brand" />
+        </div>
+      ) : (
+        <div className="mt-8 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+          {filtered.map((s) => <SoundCard key={s.id} sound={s} />)}
+          {filtered.length === 0 && (
+            <p className="col-span-full py-12 text-center text-sm text-muted-foreground">No sounds match your filters.</p>
+          )}
+        </div>
+      )}
     </div>
   );
 }
