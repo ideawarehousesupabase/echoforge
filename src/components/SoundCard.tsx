@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { Play, Pause, Sliders } from "lucide-react";
 import { Waveform } from "./Waveform";
+import { resolveAudioUrl } from "../lib/mock-data";
 
 type SoundLike = {
   id: string;
@@ -24,15 +25,20 @@ export function SoundCard({ sound }: { sound: SoundLike }) {
   const toggle = () => {
     const a = audioRef.current;
     if (!a) return;
-    if (playing) { a.pause(); setPlaying(false); }
-    else { a.play().catch(() => {}); setPlaying(true); }
+    if (playing) { a.pause(); return; }
+    // Only one card plays at a time
+    document.querySelectorAll("audio").forEach((other) => { if (other !== a) other.pause(); });
+    a.play().catch((err) => console.error("Audio playback failed:", err));
   };
 
   return (
     <div className="group bg-gradient-card glass rounded-2xl p-5 transition-all hover:shadow-glow hover:-translate-y-1">
       <audio
         ref={audioRef}
-        src={sound.audioUrl}
+        src={resolveAudioUrl(sound)}
+        preload="metadata"
+        onPlay={() => setPlaying(true)}
+        onPause={() => setPlaying(false)}
         onEnded={() => { setPlaying(false); setProgress(0); }}
         onTimeUpdate={(e) => {
           const a = e.currentTarget;

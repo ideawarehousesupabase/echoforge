@@ -38,15 +38,8 @@ export function makeWaveform(seed: number, len = 64): number[] {
   return out;
 }
 
-// Public sample audio URLs (Google's sample media / bensound-style CDN alternatives)
-const SAMPLE_AUDIO = [
-  "https://cdn.pixabay.com/download/audio/2022/03/15/audio_1e15f2b3c9.mp3?filename=cinematic-atmosphere-score-11-30037.mp3",
-  "https://cdn.pixabay.com/download/audio/2022/10/25/audio_946bc6b2f2.mp3?filename=ambient-piano-amp-strings-10711.mp3",
-  "https://cdn.pixabay.com/download/audio/2023/06/13/audio_59cbc794d8.mp3?filename=cinematic-designed-trailer-hit-3-15rl-14685.mp3",
-  "https://cdn.pixabay.com/download/audio/2022/05/16/audio_1808fbf07a.mp3?filename=forest-with-small-river-birds-and-nature-field-recording-6735.mp3",
-  "https://cdn.pixabay.com/download/audio/2022/03/10/audio_c8e7c9e0a5.mp3?filename=horror-background-atmosphere-156642.mp3",
-  "https://cdn.pixabay.com/download/audio/2022/01/18/audio_d0c6ff1bab.mp3?filename=magic-spell-6005.mp3",
-];
+// Local audio files served from public/audio/sounds
+const AUDIO_BASE = "/audio/sounds";
 
 export const MOCK_SOUNDS: MockSound[] = [
   {
@@ -56,8 +49,8 @@ export const MOCK_SOUNDS: MockSound[] = [
     mood: "Mysterious",
     category: "Ambience",
     tags: ["dungeon", "dark", "echo", "fantasy"],
-    duration: "0:42",
-    audioUrl: SAMPLE_AUDIO[0],
+    duration: "1:28",
+    audioUrl: `${AUDIO_BASE}/dark-dungeon-ambience.wav`,
     waveform: makeWaveform(11),
   },
   {
@@ -67,8 +60,8 @@ export const MOCK_SOUNDS: MockSound[] = [
     mood: "Tense",
     category: "Ambience",
     tags: ["sci-fi", "corridor", "hum"],
-    duration: "0:38",
-    audioUrl: SAMPLE_AUDIO[1],
+    duration: "0:39",
+    audioUrl: `${AUDIO_BASE}/sci-fi-corridor-hum.wav`,
     waveform: makeWaveform(22),
   },
   {
@@ -78,8 +71,8 @@ export const MOCK_SOUNDS: MockSound[] = [
     mood: "Peaceful",
     category: "Nature",
     tags: ["forest", "birds", "fantasy"],
-    duration: "1:02",
-    audioUrl: SAMPLE_AUDIO[3],
+    duration: "1:46",
+    audioUrl: `${AUDIO_BASE}/fantasy-forest-morning.mp3`,
     waveform: makeWaveform(33),
   },
   {
@@ -89,8 +82,8 @@ export const MOCK_SOUNDS: MockSound[] = [
     mood: "Epic",
     category: "Impact",
     tags: ["cinematic", "impact", "trailer"],
-    duration: "0:08",
-    audioUrl: SAMPLE_AUDIO[2],
+    duration: "0:07",
+    audioUrl: `${AUDIO_BASE}/cinematic-impact.wav`,
     waveform: makeWaveform(44),
     favorite: true,
   },
@@ -101,8 +94,8 @@ export const MOCK_SOUNDS: MockSound[] = [
     mood: "Ominous",
     category: "Ambience",
     tags: ["horror", "drone", "tension"],
-    duration: "0:55",
-    audioUrl: SAMPLE_AUDIO[4],
+    duration: "0:10",
+    audioUrl: `${AUDIO_BASE}/horror-atmosphere.wav`,
     waveform: makeWaveform(55),
   },
   {
@@ -112,8 +105,8 @@ export const MOCK_SOUNDS: MockSound[] = [
     mood: "Whimsical",
     category: "SFX",
     tags: ["magic", "sparkle", "fantasy"],
-    duration: "0:04",
-    audioUrl: SAMPLE_AUDIO[5],
+    duration: "0:09",
+    audioUrl: `${AUDIO_BASE}/magic-spell-sparkle.wav`,
     waveform: makeWaveform(66),
     favorite: true,
   },
@@ -124,8 +117,8 @@ export const MOCK_SOUNDS: MockSound[] = [
     mood: "Melancholic",
     category: "Music",
     tags: ["piano", "emotional", "cinematic"],
-    duration: "0:47",
-    audioUrl: SAMPLE_AUDIO[1],
+    duration: "1:17",
+    audioUrl: `${AUDIO_BASE}/emotional-piano-motif.wav`,
     waveform: makeWaveform(77),
   },
   {
@@ -135,11 +128,23 @@ export const MOCK_SOUNDS: MockSound[] = [
     mood: "Energetic",
     category: "Transition",
     tags: ["whoosh", "transition"],
-    duration: "0:03",
-    audioUrl: SAMPLE_AUDIO[2],
+    duration: "0:09",
+    audioUrl: `${AUDIO_BASE}/cinematic-transition-whoosh.wav`,
     waveform: makeWaveform(88),
   },
 ];
+
+// Sounds saved to Firestore before the local files existed still carry old
+// remote URLs. Map them back to the matching local file by title, or by tags
+// (generated takes keep their source sound's tags but get a new title).
+export function resolveAudioUrl(sound: { title: string; tags: string[]; audioUrl: string }): string {
+  if (sound.audioUrl.startsWith(`${AUDIO_BASE}/`)) return sound.audioUrl;
+  const tagKey = sound.tags.join("|");
+  const match =
+    MOCK_SOUNDS.find((s) => s.title === sound.title) ??
+    MOCK_SOUNDS.find((s) => s.tags.join("|") === tagKey);
+  return match?.audioUrl ?? sound.audioUrl;
+}
 
 export const MOCK_PROJECTS: MockProject[] = [
   {

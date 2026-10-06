@@ -1,13 +1,14 @@
 import { createFileRoute, Link, useParams } from "@tanstack/react-router";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Play, Pause, Download, ArrowLeft, RotateCcw, FolderOpen, Loader2 } from "lucide-react";
-import { MOCK_SOUNDS } from "../lib/mock-data";
+import { MOCK_SOUNDS, resolveAudioUrl } from "../lib/mock-data";
 import { Waveform } from "../components/Waveform";
 import { toast } from "sonner";
 import { useSound } from "../hooks/useProjects";
 import { useAuth } from "../lib/auth";
 import { useUserProjects } from "../hooks/useProjects";
 import { assignSoundToProject } from "../lib/firestore-data";
+import { AudioFxChain } from "../lib/audio-fx";
 
 export const Route = createFileRoute("/app/editor/$id")({
   head: () => ({ meta: [{ title: "Sound Editor — EchoForge" }] }),
@@ -56,11 +57,34 @@ function EditorPage() {
     Object.fromEntries(CONTROLS.map((c) => [c.key, 50]))
   );
 
-  const toggle = () => {
+  // Web Audio chain for the Refinement Studio. Created on first play because
+  // browsers only allow an AudioContext to start from a user gesture.
+  const fxRef = useRef<AudioFxChain | null>(null);
+
+  useEffect(() => {
+    fxRef.current?.update(values);
+  }, [values]);
+
+  useEffect(() => () => {
+    fxRef.current?.close();
+    fxRef.current = null;
+  }, []);
+
+  const toggle = async () => {
     const a = audioRef.current;
     if (!a) return;
-    if (playing) { a.pause(); setPlaying(false); }
-    else { a.play().catch(() => {}); setPlaying(true); }
+    if (playing) { a.pause(); return; }
+    try {
+      if (!fxRef.current) {
+        fxRef.current = new AudioFxChain(a);
+        fxRef.current.update(values);
+      }
+      await fxRef.current.resume();
+    } catch (err) {
+      // Fall back to plain playback if Web Audio is unavailable
+      console.error("Audio effects unavailable:", err);
+    }
+    a.play().catch((err) => console.error("Audio playback failed:", err));
   };
 
   const reset = () => {
@@ -117,7 +141,10 @@ function EditorPage() {
       <div className="glass-strong overflow-hidden rounded-3xl">
         <audio
           ref={audioRef}
-          src={sound.audioUrl}
+          src={resolveAudioUrl(sound)}
+          preload="metadata"
+          onPlay={() => setPlaying(true)}
+          onPause={() => setPlaying(false)}
           onEnded={() => { setPlaying(false); setProgress(0); }}
           onTimeUpdate={(e) => {
             const a = e.currentTarget;
