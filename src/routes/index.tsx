@@ -167,9 +167,9 @@ function Landing() {
           </div>
           <div className="mt-16 grid gap-6 md:grid-cols-3">
             {[
-              { name: "Starter", price: "$0", desc: "For exploring", features: ["50 generations / mo", "MP3 export", "Personal use"], cta: "Start free", highlight: false },
-              { name: "Creator", price: "$19", desc: "For serious makers", features: ["Unlimited generations", "WAV + MP3 export", "Refinement studio", "Commercial use"], cta: "Go Creator", highlight: true },
-              { name: "Studio", price: "$49", desc: "For teams", features: ["Everything in Creator", "Shared library", "Priority queue", "Team seats"], cta: "Contact us", highlight: false },
+              { name: "Starter", price: "£0", desc: "For exploring", features: ["50 generations / mo", "MP3 export", "Personal use"], cta: "Start free", highlight: false },
+              { name: "Creator", price: "£49", desc: "For serious makers", features: ["Unlimited generations", "WAV + MP3 export", "Refinement studio", "Commercial use"], cta: "Go Creator", highlight: true },
+              { name: "Studio", price: "£149", desc: "For teams", features: ["Everything in Creator", "Shared library", "Priority queue", "Team seats"], cta: "Contact us", highlight: false },
             ].map((p) => (
               <div
                 key={p.name}
