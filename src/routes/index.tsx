@@ -165,11 +165,12 @@ function Landing() {
             <h2 className="font-display text-4xl font-bold md:text-5xl">Simple, creator-friendly pricing</h2>
             <p className="mt-4 text-muted-foreground">Start free. Upgrade when you're ready to ship.</p>
           </div>
-          <div className="mt-16 grid gap-6 md:grid-cols-3">
+          <div className="mt-16 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
             {[
-              { name: "Starter", price: "£0", desc: "For exploring", features: ["50 generations / mo", "MP3 export", "Personal use"], cta: "Start free", highlight: false },
-              { name: "Creator", price: "£49", desc: "For serious makers", features: ["Unlimited generations", "WAV + MP3 export", "Refinement studio", "Commercial use"], cta: "Go Creator", highlight: true },
-              { name: "Studio", price: "£149", desc: "For teams", features: ["Everything in Creator", "Shared library", "Priority queue", "Team seats"], cta: "Contact us", highlight: false },
+              { name: "Free", price: "£0", desc: "For exploring", features: ["Basic sound generation", "Limited exports", "Personal use"], cta: "Start free", highlight: false, note: "" },
+              { name: "Creator", price: "£19", desc: "For solo creators and hobbyists", features: ["Core AI sound generation", "Simple refinement", "Standard WAV + MP3 export"], cta: "Go Creator", highlight: false, note: "" },
+              { name: "Pro", price: "£49", desc: "For freelancers and small studios", features: ["Everything in Creator", "Real-time refinement controls", "Higher generation limits", "DAW & game-engine plugins (coming Year 2)"], cta: "Go Pro", highlight: true, note: "" },
+              { name: "Studio", price: "£149", desc: "For teams of up to 5 seats", features: ["Everything in Pro", "Shared team workspace", "Team libraries", "Priority processing"], cta: "Contact us", highlight: false, note: "+ £150 one-off onboarding fee" },
             ].map((p) => (
               <div
                 key={p.name}
@@ -190,6 +191,7 @@ function Landing() {
                   <span className="font-display text-5xl font-bold">{p.price}</span>
                   <span className="text-sm text-muted-foreground">/mo</span>
                 </div>
+                {p.note && <p className="mt-2 text-xs text-muted-foreground">{p.note}</p>}
                 <ul className="mt-6 space-y-3">
                   {p.features.map((f) => (
                     <li key={f} className="flex items-center gap-2 text-sm">
@@ -210,6 +212,9 @@ function Landing() {
               </div>
             ))}
           </div>
+          <p className="mt-8 text-center text-sm text-muted-foreground">
+            Add-on: rendering &amp; spatial audio credits, £12/mo.
+          </p>
         </div>
       </section>
 

@@ -79,10 +79,10 @@ function ProfilePage() {
             </div>
             <div>
               <p className="text-xs text-muted-foreground">Current plan</p>
-              <p className="font-display text-lg font-semibold">Creator</p>
+              <p className="font-display text-lg font-semibold">Pro · £49/mo</p>
             </div>
           </div>
-          <p className="mt-4 text-sm text-muted-foreground">Unlimited generations, WAV + MP3 export, commercial use.</p>
+          <p className="mt-4 text-sm text-muted-foreground">Real-time refinement controls, higher generation limits, WAV + MP3 export.</p>
           <button className="mt-4 rounded-lg border border-border px-3 py-1.5 text-xs hover:bg-surface">Manage subscription</button>
         </div>
         <div className="glass rounded-3xl p-6">
